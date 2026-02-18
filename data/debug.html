@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - Modbee MPPT Debug</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: white;
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #444;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .card h2 {
+            margin-bottom: 15px;
+            color: #333;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+        
+        .debug-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        
+        .measurement-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+        
+        .measurement {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 12px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            border-left: 3px solid #666;
+        }
+        
+        .measurement-label {
+            font-weight: 500;
+            color: #555;
+        }
+        
+        .measurement-value {
+            font-family: 'Courier New', monospace;
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .status-section {
+            margin-bottom: 20px;
+        }
+        
+        .status-section h3 {
+            margin-bottom: 10px;
+            color: #444;
+            font-size: 1.1em;
+            padding: 8px;
+            background: #f0f0f0;
+            border-radius: 4px;
+        }
+        
+        .status-text {
+            background: #fafafa;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            color: #333;
+        }
+        
+        .navigation {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .nav-btn {
+            padding: 12px 20px;
+            background: #666;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        
+        .nav-btn:hover {
+            background: #555;
+        }
+        
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .connected {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #2e7d32;
+        }
+        
+        .disconnected {
+            background: #ffebee;
+            color: #d32f2f;
+            border: 1px solid #d32f2f;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .debug-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .measurement-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .navigation {
+                position: relative;
+                bottom: auto;
+                right: auto;
+                justify-content: center;
+                margin-top: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">Connecting...</div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>Modbee MPPT Debug</h1>
+            <p>Real-time system diagnostics and status information</p>
+        </div>
+        
+        <div class="debug-grid">
+            <div class="card">
+                <h2>Power Measurements</h2>
+                <div class="measurement-grid">
+                    <div class="measurement">
+                        <span class="measurement-label">VBUS Voltage:</span>
+                        <span class="measurement-value" id="vbusVoltage">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">VBUS Current:</span>
+                        <span class="measurement-value" id="vbusCurrent">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">VBUS Power:</span>
+                        <span class="measurement-value" id="vbusPower">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">VBAT Voltage:</span>
+                        <span class="measurement-value" id="vbatVoltage">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">VBAT True:</span>
+                        <span class="measurement-value" id="trueBatteryVoltage">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">VBAT Current:</span>
+                        <span class="measurement-value" id="batteryCurrent">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">VBAT Power:</span>
+                        <span class="measurement-value" id="batteryPower">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">VSYS Voltage:</span>
+                        <span class="measurement-value" id="vsysVoltage">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">VSYS Current:</span>
+                        <span class="measurement-value" id="systemCurrent">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">VSYS Power:</span>
+                        <span class="measurement-value" id="systemPower">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">VAC1 Voltage:</span>
+                        <span class="measurement-value" id="vac1Voltage">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">VAC1 Current:</span>
+                        <span class="measurement-value" id="vac1Current">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">VAC1 Power:</span>
+                        <span class="measurement-value" id="vac1Power">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">VAC2 Voltage:</span>
+                        <span class="measurement-value" id="vac2Voltage">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">VAC2 Current:</span>
+                        <span class="measurement-value" id="vac2Current">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">VAC2 Power:</span>
+                        <span class="measurement-value" id="vac2Power">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Temperature:</span>
+                        <span class="measurement-value" id="temperature">--</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h2>System Status</h2>
+                <div class="measurement-grid">
+                    <div class="measurement">
+                        <span class="measurement-label">Charge State:</span>
+                        <span class="measurement-value" id="chargeState">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">MPPT Enabled:</span>
+                        <span class="measurement-value" id="mpptEnabled">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Battery Connected:</span>
+                        <span class="measurement-value" id="batteryConnected">--</span>
+                    </div>
+                </div>
+                
+                <div class="status-section">
+                    <h3>Battery State of Charge</h3>
+                    <div class="measurement-grid">
+                        <div class="measurement">
+                            <span class="measurement-label">Actual SOC:</span>
+                            <span class="measurement-value" id="actualSOC">--</span>
+                        </div>
+                        <div class="measurement">
+                            <span class="measurement-label">Usable SOC:</span>
+                            <span class="measurement-value" id="usableSOC">--</span>
+                        </div>
+                        <div class="measurement">
+                            <span class="measurement-label">Charge Percent:</span>
+                            <span class="measurement-value" id="chargePercent">--</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="status-section">
+                    <h3>Fault Status</h3>
+                    <div class="status-text" id="faultStatus">No faults detected</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Status Registers</h2>
+            <div class="debug-grid">
+                <div class="status-section">
+                    <h3>Status Register 0</h3>
+                    <div class="status-text" id="status0">Loading...</div>
+                </div>
+                <div class="status-section">
+                    <h3>Status Register 1</h3>
+                    <div class="status-text" id="status1">Loading...</div>
+                </div>
+                <div class="status-section">
+                    <h3>Status Register 2</h3>
+                    <div class="status-text" id="status2">Loading...</div>
+                </div>
+                <div class="status-section">
+                    <h3>Status Register 3</h3>
+                    <div class="status-text" id="status3">Loading...</div>
+                </div>
+                <div class="status-section">
+                    <h3>Status Register 4</h3>
+                    <div class="status-text" id="status4">Loading...</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Configuration Values</h2>
+            
+            <div class="status-section">
+                <h3>Basic Charging Configuration</h3>
+                <div class="measurement-grid">
+                    <div class="measurement">
+                        <span class="measurement-label">Charge Voltage:</span>
+                        <span class="measurement-value" id="configChargeVoltage">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Charge Current:</span>
+                        <span class="measurement-value" id="configChargeCurrent">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Termination Current:</span>
+                        <span class="measurement-value" id="configTerminationCurrent">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Recharge Threshold:</span>
+                        <span class="measurement-value" id="configRechargeThreshold">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Precharge Current:</span>
+                        <span class="measurement-value" id="configPrechargeCurrent">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Precharge Voltage Threshold:</span>
+                        <span class="measurement-value" id="configPrechargeVoltageThreshold">--</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="status-section">
+                <h3>Input Limits & Protection</h3>
+                <div class="measurement-grid">
+                    <div class="measurement">
+                        <span class="measurement-label">Input Current Limit:</span>
+                        <span class="measurement-value" id="configInputCurrentLimit">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Input Voltage Limit:</span>
+                        <span class="measurement-value" id="configInputVoltageLimit">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Min System Voltage:</span>
+                        <span class="measurement-value" id="configMinSystemVoltage">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">VAC OVP Threshold:</span>
+                        <span class="measurement-value" id="configVacOVPThreshold">--</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="status-section">
+                <h3>System Configuration</h3>
+                <div class="measurement-grid">
+                    <div class="measurement">
+                        <span class="measurement-label">Cell Count:</span>
+                        <span class="measurement-value" id="configCellCount">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Charge Enable:</span>
+                        <span class="measurement-value" id="configChargeEnable">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">HIZ Mode:</span>
+                        <span class="measurement-value" id="configHizMode">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Backup Mode:</span>
+                        <span class="measurement-value" id="configBackupMode">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Ship Mode:</span>
+                        <span class="measurement-value" id="configShipMode">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Battery Discharge Sense:</span>
+                        <span class="measurement-value" id="configBatteryDischargeSense">--</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="status-section">
+                <h3>Timer Configuration</h3>
+                <div class="measurement-grid">
+                    <div class="measurement">
+                        <span class="measurement-label">Fast Charge Timer Enable:</span>
+                        <span class="measurement-value" id="configFastChargeTimerEnable">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Precharge Timer Enable:</span>
+                        <span class="measurement-value" id="configPrechargeTimerEnable">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Topoff Timer:</span>
+                        <span class="measurement-value" id="configTopoffTimer">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Trickle Charge Timer Enable:</span>
+                        <span class="measurement-value" id="configTrickleChargeTimerEnable">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Timer Half Rate Enable:</span>
+                        <span class="measurement-value" id="configTimerHalfRateEnable">--</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="status-section">
+                <h3>Watchdog & MPPT Configuration</h3>
+                <div class="measurement-grid">
+                    <div class="measurement">
+                        <span class="measurement-label">Watchdog Enable:</span>
+                        <span class="measurement-value" id="configWatchdogEnable">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">Watchdog Timer:</span>
+                        <span class="measurement-value" id="configWatchdogTimer">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">MPPT Enable:</span>
+                        <span class="measurement-value" id="configMpptEnable">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">MPPT VOC Percent:</span>
+                        <span class="measurement-value" id="configMpptVOCPercent">--</span>
+                    </div>
+                    <div class="measurement">
+                        <span class="measurement-label">MPPT VOC Percent (Float):</span>
+                        <span class="measurement-value" id="configMpptVOCPercentFloat">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="navigation">
+        <a href="/" class="nav-btn">Overview</a>
+        <a href="/settings" class="nav-btn">Settings</a>
+    </div>
+
+    <script>
+        let ws;
+        let reconnectInterval;
+        let connectionAttempts = 0;
+        const maxReconnectAttempts = 5;
+        
+        function connectWebSocket() {
+            // Close existing connection if any
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            
+            // Clear any existing reconnect interval
+            if (reconnectInterval) {
+                clearInterval(reconnectInterval);
+                reconnectInterval = null;
+            }
+            
+            try {
+                ws = new WebSocket('ws://' + window.location.host + '/ws');
+                
+                ws.onopen = function() {
+                    console.log('WebSocket connected');
+                    document.getElementById('connectionStatus').textContent = 'Connected';
+                    document.getElementById('connectionStatus').className = 'connection-status connected';
+                    connectionAttempts = 0; // Reset attempts on successful connection
+                };
+                
+                ws.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    updateDebugData(data);
+                };
+                
+                ws.onclose = function(event) {
+                    console.log('WebSocket disconnected. Code:', event.code, 'Reason:', event.reason);
+                    document.getElementById('connectionStatus').textContent = 'Disconnected';
+                    document.getElementById('connectionStatus').className = 'connection-status disconnected';
+                    
+                    // Only attempt to reconnect if we haven't exceeded max attempts
+                    if (connectionAttempts < maxReconnectAttempts) {
+                        connectionAttempts++;
+                        setTimeout(connectWebSocket, 3000);
+                    } else {
+                        console.log('Max reconnection attempts reached');
+                        document.getElementById('connectionStatus').textContent = 'Connection Failed';
+                    }
+                };
+                
+                ws.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                };
+                
+            } catch (error) {
+                console.error('Failed to create WebSocket:', error);
+                if (connectionAttempts < maxReconnectAttempts) {
+                    connectionAttempts++;
+                    setTimeout(connectWebSocket, 3000);
+                }
+            }
+        }
+        
+        function updateDebugData(data) {
+            if (data.type === 'debug') {
+                // Update power measurements
+                updateElement('vbusVoltage', data.vbusVoltage);
+                updateElement('vbusCurrent', data.ibusCurrent);
+                updateElement('vbusPower', data.vbusPower);
+                updateElement('vbatVoltage', data.vbatVoltage);
+                updateElement('trueBatteryVoltage', data.trueBatteryVoltage);
+                updateElement('batteryCurrent', data.batteryCurrent);
+                updateElement('batteryPower', data.batteryPower);
+                updateElement('vsysVoltage', data.vsysVoltage);
+                updateElement('systemCurrent', data.systemCurrent);
+                updateElement('systemPower', data.systemPower);
+                updateElement('vac1Voltage', data.vac1Voltage);
+                updateElement('vac1Current', data.vac1Current);
+                updateElement('vac1Power', data.vac1Power);
+                updateElement('vac2Voltage', data.vac2Voltage);
+                updateElement('vac2Current', data.vac2Current);
+                updateElement('vac2Power', data.vac2Power);
+                updateElement('temperature', data.temperature);
+                
+                // Update battery SOC data
+                updateElement('actualSOC', data.actualSOC ? data.actualSOC + '%' : '--');
+                updateElement('usableSOC', data.usableSOC ? data.usableSOC + '%' : '--');
+                updateElement('chargePercent', data.chargePercent ? data.chargePercent + '%' : '--');
+                
+                // Update system status
+                updateElement('chargeState', data.chargeState);
+                updateElement('mpptEnabled', data.mpptEnabled ? 'Yes' : 'No');
+                updateElement('batteryConnected', data.batteryConnected ? 'Yes' : 'No');
+                updateElement('faultStatus', data.faultStatus || 'No faults detected');
+                
+                // Update status registers
+                if (data.statusRegisters) {
+                    updateElement('status0', data.statusRegisters.status0 || 'No data');
+                    updateElement('status1', data.statusRegisters.status1 || 'No data');
+                    updateElement('status2', data.statusRegisters.status2 || 'No data');
+                    updateElement('status3', data.statusRegisters.status3 || 'No data');
+                    updateElement('status4', data.statusRegisters.status4 || 'No data');
+                }
+                
+                // Update configuration values
+                if (data.configuration) {
+                    // Basic charging configuration
+                    updateElement('configChargeVoltage', data.configuration.chargeVoltage);
+                    updateElement('configChargeCurrent', data.configuration.chargeCurrent);
+                    updateElement('configTerminationCurrent', data.configuration.terminationCurrent);
+                    updateElement('configRechargeThreshold', data.configuration.rechargeThreshold);
+                    updateElement('configPrechargeCurrent', data.configuration.prechargeCurrent);
+                    updateElement('configPrechargeVoltageThreshold', data.configuration.prechargeVoltageThreshold);
+                    
+                    // Input limits & protection
+                    updateElement('configInputCurrentLimit', data.configuration.inputCurrentLimit);
+                    updateElement('configInputVoltageLimit', data.configuration.inputVoltageLimit);
+                    updateElement('configMinSystemVoltage', data.configuration.minSystemVoltage);
+                    updateElement('configVacOVPThreshold', data.configuration.vacOVPThreshold);
+                    
+                    // System configuration
+                    updateElement('configCellCount', data.configuration.cellCount);
+                    updateElement('configChargeEnable', data.configuration.chargeEnable ? 'Enabled' : 'Disabled');
+                    updateElement('configHizMode', data.configuration.hizMode ? 'Enabled' : 'Disabled');
+                    updateElement('configBackupMode', data.configuration.backupMode ? 'Enabled' : 'Disabled');
+                    updateElement('configShipMode', data.configuration.shipMode ? 'Enabled' : 'Disabled');
+                    updateElement('configBatteryDischargeSense', data.configuration.batteryDischargeSense ? 'Enabled' : 'Disabled');
+                    
+                    // Timer configuration
+                    updateElement('configFastChargeTimerEnable', data.configuration.fastChargeTimerEnable ? 'Enabled' : 'Disabled');
+                    updateElement('configPrechargeTimerEnable', data.configuration.prechargeTimerEnable ? 'Enabled' : 'Disabled');
+                    updateElement('configTopoffTimer', data.configuration.topoffTimer);
+                    updateElement('configTrickleChargeTimerEnable', data.configuration.trickleChargeTimerEnable ? 'Enabled' : 'Disabled');
+                    updateElement('configTimerHalfRateEnable', data.configuration.timerHalfRateEnable ? 'Enabled' : 'Disabled');
+                    
+                    // Watchdog & MPPT configuration
+                    updateElement('configWatchdogEnable', data.configuration.watchdogEnable ? 'Enabled' : 'Disabled');
+                    updateElement('configWatchdogTimer', data.configuration.watchdogTimer);
+                    updateElement('configMpptEnable', data.configuration.mpptEnable ? 'Enabled' : 'Disabled');
+                    updateElement('configMpptVOCPercent', data.configuration.mpptVOCPercent);
+                    updateElement('configMpptVOCPercentFloat', data.configuration.mpptVOCPercentFloat + '%');
+                }
+            }
+        }
+        
+        function updateElement(id, value) {
+            const element = document.getElementById(id);
+            if (element && value !== undefined && value !== null) {
+                element.textContent = value;
+            }
+        }
+        
+        // Start WebSocket connection
+        connectWebSocket();
+        
+        // Request debug data every 2 seconds
+        setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({command: 'getDebugData'}));
+            }
+        }, 2000);
+    </script>
+</body>
+</html>

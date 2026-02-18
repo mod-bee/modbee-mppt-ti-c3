@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modbee MPPT Settings</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: white;
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #444;
+        }
+        
+        .header p {
+            color: #666;
+            font-size: 1.1em;
+        }
+        
+        .card {
+            background: #f9f9f9;
+            border-radius: 8px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .card h2 {
+            color: #444;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+        }
+        
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 15px;
+        }
+        
+        .setting-item {
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            transition: border-color 0.3s;
+        }
+        
+        .setting-item:hover {
+            border-color: #999;
+        }
+        
+        .setting-label {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+            display: block;
+        }
+        
+        .setting-description {
+            font-size: 0.9em;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        .setting-input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+        
+        .setting-input:focus {
+            outline: none;
+            border-color: #666;
+        }
+        
+        .setting-current {
+            background: #f0f0f0;
+            color: #666;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+            margin-top: 5px;
+            display: inline-block;
+        }
+        
+        .controls {
+            text-align: center;
+            margin: 30px 0;
+            padding: 20px;
+            background: #f5f5f5;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background: #666;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #555;
+        }
+        
+        .btn-secondary {
+            background: #999;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #777;
+        }
+        
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background: #c82333;
+        }
+        
+        .status-message {
+            text-align: center;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 6px;
+            display: none;
+        }
+        
+        .status-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        
+        .status-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        
+        .status-info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        
+        .navigation {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .nav-btn {
+            padding: 12px 20px;
+            background: #666;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+        
+        .nav-btn:hover {
+            background: #555;
+        }
+        
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .connected {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #2e7d32;
+        }
+        
+        .disconnected {
+            background: #ffebee;
+            color: #d32f2f;
+            border: 1px solid #d32f2f;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .navigation {
+                position: static;
+                margin-top: 20px;
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status disconnected" id="connectionStatus">Disconnected</div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>Modbee MPPT Settings</h1>
+            <p>Configure charger parameters and system settings</p>
+        </div>
+
+        <div class="status-message" id="statusMessage"></div>
+
+        <div class="card">
+            <h2>Battery Configuration</h2>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <label class="setting-label" for="battery-type">Battery Type</label>
+                    <div class="setting-description">Select your battery chemistry type</div>
+                    <select class="setting-input" id="battery-type">
+                        <option value="0">LiFePO4</option>
+                        <option value="1">Li-Po</option>
+                        <option value="2">Lead Acid</option>
+                        <option value="3">Custom</option>
+                    </select>
+                    <div class="setting-current" id="battery-type-current">Current: LiFePO4</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label" for="cell-count">Cell Count</label>
+                    <div class="setting-description">Number of battery cells in series (1-4)</div>
+                    <input type="number" class="setting-input" id="cell-count" min="1" max="4" value="3">
+                    <div class="setting-current" id="cell-count-current">Current: 3</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label" for="charge-voltage">Charge Voltage Limit (V)</label>
+                    <div class="setting-description">Maximum battery charge voltage (3.0V - 18.8V)</div>
+                    <input type="number" class="setting-input" id="charge-voltage" step="0.1" min="3.0" max="18.8">
+                    <div class="setting-current" id="charge-voltage-current">Current: --V</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label" for="charge-current">Charge Current Limit (A)</label>
+                    <div class="setting-description">Maximum battery charge current (0.0A - 5.0A)</div>
+                    <input type="number" class="setting-input" id="charge-current" step="0.1" min="0.0" max="5.0">
+                    <div class="setting-current" id="charge-current-current">Current: --A</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label" for="term-current">Termination Current (A)</label>
+                    <div class="setting-description">Current threshold to end charging (0.04A - 1.0A)</div>
+                    <input type="number" class="setting-input" id="term-current" step="0.01" min="0.04" max="1.0">
+                    <div class="setting-current" id="term-current-current">Current: --A</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label" for="precharge-current">Precharge Current (A)</label>
+                    <div class="setting-description">Current for battery precharge phase (0.04A - 2.0A)</div>
+                    <input type="number" class="setting-input" id="precharge-current" step="0.01" min="0.04" max="2.0">
+                    <div class="setting-current" id="precharge-current-current">Current: --A</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label" for="recharge-threshold">Recharge Threshold (V)</label>
+                    <div class="setting-description">Voltage drop to restart charging (0.05V - 0.8V)</div>
+                    <input type="number" class="setting-input" id="recharge-threshold" step="0.01" min="0.05" max="0.8">
+                    <div class="setting-current" id="recharge-threshold-current">Current: --V</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Input Configuration</h2>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <label class="setting-label" for="input-voltage">Input Voltage Limit (V)</label>
+                    <div class="setting-description">Maximum input voltage limit (3.6V - 22.0V)</div>
+                    <input type="number" class="setting-input" id="input-voltage" step="0.1" min="3.6" max="22.0">
+                    <div class="setting-current" id="input-voltage-current">Current: --V</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label" for="input-current">Input Current Limit (A)</label>
+                    <div class="setting-description">Maximum input current limit (0.1A - 3.3A)</div>
+                    <input type="number" class="setting-input" id="input-current" step="0.1" min="0.1" max="3.3">
+                    <div class="setting-current" id="input-current-current">Current: --A</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label" for="vac-ovp">VAC OVP Threshold (V)</label>
+                    <div class="setting-description">Input overvoltage protection threshold (7V, 12V, 22V, or 26V)</div>
+                    <select class="setting-input" id="vac-ovp">
+                        <option value="7">7V</option>
+                        <option value="12">12V</option>
+                        <option value="22">22V</option>
+                        <option value="26">26V</option>
+                    </select>
+                    <div class="setting-current" id="vac-ovp-current">Current: --V</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>MPPT Configuration</h2>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <label class="setting-label" for="mppt-enable">MPPT Enable</label>
+                    <div class="setting-description">Enable Maximum Power Point Tracking</div>
+                    <select class="setting-input" id="mppt-enable">
+                        <option value="1">Enabled</option>
+                        <option value="0">Disabled</option>
+                    </select>
+                    <div class="setting-current" id="mppt-enable-current">Current: Enabled</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label" for="voc-percent">VOC Percentage</label>
+                    <div class="setting-description">Operating voltage as percentage of open circuit voltage</div>
+                    <select class="setting-input" id="voc-percent">
+                        <option value="0">56.25%</option>
+                        <option value="1">62.5%</option>
+                        <option value="2">68.75%</option>
+                        <option value="3">75%</option>
+                        <option value="4">81.25%</option>
+                        <option value="5">87.5%</option>
+                        <option value="6">93.75%</option>
+                        <option value="7">100%</option>
+                    </select>
+                    <div class="setting-current" id="voc-percent-current">Current: 87.5%</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label" for="voc-delay">VOC Measurement Delay</label>
+                    <div class="setting-description">Delay before VOC measurement</div>
+                    <select class="setting-input" id="voc-delay">
+                        <option value="0">50ms</option>
+                        <option value="1">300ms</option>
+                        <option value="2">2s</option>
+                        <option value="3">5s</option>
+                    </select>
+                    <div class="setting-current" id="voc-delay-current">Current: 300ms</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label" for="voc-rate">VOC Measurement Rate</label>
+                    <div class="setting-description">How often to measure open circuit voltage</div>
+                    <select class="setting-input" id="voc-rate">
+                        <option value="0">30s</option>
+                        <option value="1">2min</option>
+                        <option value="2">10min</option>
+                        <option value="3">30min</option>
+                    </select>
+                    <div class="setting-current" id="voc-rate-current">Current: 2min</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Power Management & Noise Control</h2>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <label class="setting-label" for="pfm-forward-enable">PFM Mode (Forward)</label>
+                    <div class="setting-description">Enable Pulse Frequency Modulation for better light-load efficiency (may cause audible noise)</div>
+                    <select class="setting-input" id="pfm-forward-enable">
+                        <option value="0">Disabled (Quiet Operation)</option>
+                        <option value="1">Enabled (Better Efficiency)</option>
+                    </select>
+                    <div class="setting-current" id="pfm-forward-enable-current">Current: Disabled</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label" for="ooa-forward-enable">Out of Audio Mode (Forward)</label>
+                    <div class="setting-description">Maintain minimum 25kHz switching frequency to avoid audible noise in PFM mode</div>
+                    <select class="setting-input" id="ooa-forward-enable">
+                        <option value="1">Enabled (Quiet)</option>
+                        <option value="0">Disabled (Max Efficiency)</option>
+                    </select>
+                    <div class="setting-current" id="ooa-forward-enable-current">Current: Enabled</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>System Intervals</h2>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <label class="setting-label" for="battery-check-interval">Battery Check Interval</label>
+                    <div class="setting-description">How often to check for battery connection changes (seconds)</div>
+                    <input type="number" class="setting-input" id="battery-check-interval" min="5" max="300" step="5" value="30">
+                    <div class="setting-current" id="battery-check-interval-current">Current: 30s</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label" for="soc-check-interval">SOC Check Interval</label>
+                    <div class="setting-description">How often to update State of Charge measurements (seconds)</div>
+                    <input type="number" class="setting-input" id="soc-check-interval" min="10" max="600" step="10" value="60">
+                    <div class="setting-current" id="soc-check-interval-current">Current: 60s</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Timer Configuration</h2>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <label class="setting-label" for="charge-timer-enable">Enable Charge Safety Timer</label>
+                    <div class="setting-description">Enable maximum charge time protection</div>
+                    <select class="setting-input" id="charge-timer-enable">
+                        <option value="1">Enabled</option>
+                        <option value="0">Disabled</option>
+                    </select>
+                    <div class="setting-current" id="charge-timer-enable-current">Current: Enabled</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label" for="charge-timer">Charge Safety Timer</label>
+                    <div class="setting-description">Maximum charge time before timeout</div>
+                    <select class="setting-input" id="charge-timer">
+                        <option value="0">5 hours</option>
+                        <option value="1">8 hours</option>
+                        <option value="2">12 hours</option>
+                        <option value="3">24 hours</option>
+                    </select>
+                    <div class="setting-current" id="charge-timer-current">Current: 12 hours</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label" for="precharge-timer-enable">Enable Precharge Timer</label>
+                    <div class="setting-description">Enable maximum precharge time protection</div>
+                    <select class="setting-input" id="precharge-timer-enable">
+                        <option value="1">Enabled</option>
+                        <option value="0">Disabled</option>
+                    </select>
+                    <div class="setting-current" id="precharge-timer-enable-current">Current: Enabled</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label" for="precharge-timer">Precharge Timer</label>
+                    <div class="setting-description">Maximum precharge time</div>
+                    <select class="setting-input" id="precharge-timer">
+                        <option value="0">2 hours</option>
+                        <option value="1">30 minutes</option>
+                    </select>
+                    <div class="setting-current" id="precharge-timer-current">Current: 30 minutes</div>
+                </div>
+                
+                <div class="setting-item">
+                    <label class="setting-label" for="topoff-timer">Top-off Timer</label>
+                    <div class="setting-description">Duration of final charge phase</div>
+                    <select class="setting-input" id="topoff-timer">
+                        <option value="0">Disabled</option>
+                        <option value="1">15 minutes</option>
+                        <option value="2">30 minutes</option>
+                        <option value="3">45 minutes</option>
+                    </select>
+                    <div class="setting-current" id="topoff-timer-current">Current: Disabled</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>System Configuration</h2>
+            <div class="settings-grid">
+                <div class="setting-item">
+                    <label class="setting-label" for="system-voltage">Minimum System Voltage (V)</label>
+                    <div class="setting-description">Minimum system operating voltage (2.5V - 16.0V)</div>
+                    <input type="number" class="setting-input" id="system-voltage" step="0.1" min="2.5" max="16.0">
+                    <div class="setting-current" id="system-voltage-current">Current: --V</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn btn-secondary" onclick="refreshSettings()">Refresh</button>
+            <button class="btn btn-primary" onclick="saveSettings()">Save Settings</button>
+            <button class="btn btn-danger" onclick="resetSettings()">Reset to Defaults</button>
+        </div>
+    </div>
+    
+    <div class="navigation">
+        <a href="/" class="nav-btn">Overview</a>
+        <a href="/debug" class="nav-btn">Debug</a>
+    </div>
+
+    <script>
+        let ws;
+        let reconnectInterval;
+        let connectionAttempts = 0;
+        const maxReconnectAttempts = 5;
+        
+        function connectWebSocket() {
+            // Close existing connection if any
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            
+            // Clear any existing reconnect interval
+            if (reconnectInterval) {
+                clearInterval(reconnectInterval);
+                reconnectInterval = null;
+            }
+            
+            try {
+                ws = new WebSocket('ws://' + window.location.host + '/ws');
+                
+                ws.onopen = function() {
+                    console.log('WebSocket connected');
+                    document.getElementById('connectionStatus').textContent = 'Connected';
+                    document.getElementById('connectionStatus').className = 'connection-status connected';
+                    connectionAttempts = 0; // Reset attempts on successful connection
+                    loadSettings();
+                };
+                
+                ws.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    if (data.type === 'settings' && data.settings) {
+                        populateFormFields(data.settings);
+                        updateCurrentValues(data.settings);
+                    } else if (data.type === 'status') {
+                        showStatus(data.message, data.success ? 'success' : 'error');
+                        if (data.success) {
+                            // If settings were saved/reset successfully, reload the settings
+                            setTimeout(loadSettings, 500);
+                        }
+                    }
+                };
+                
+                ws.onclose = function(event) {
+                    console.log('WebSocket disconnected. Code:', event.code, 'Reason:', event.reason);
+                    document.getElementById('connectionStatus').textContent = 'Disconnected';
+                    document.getElementById('connectionStatus').className = 'connection-status disconnected';
+                    
+                    // Only attempt to reconnect if we haven't exceeded max attempts
+                    if (connectionAttempts < maxReconnectAttempts) {
+                        connectionAttempts++;
+                        setTimeout(connectWebSocket, 3000);
+                    } else {
+                        console.log('Max reconnection attempts reached');
+                        document.getElementById('connectionStatus').textContent = 'Connection Failed';
+                    }
+                };
+                
+                ws.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                };
+                
+            } catch (error) {
+                console.error('Failed to create WebSocket:', error);
+                if (connectionAttempts < maxReconnectAttempts) {
+                    connectionAttempts++;
+                    setTimeout(connectWebSocket, 3000);
+                }
+            }
+        }
+        
+        function loadSettings() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({command: 'getSettings'}));
+            }
+        }
+        
+        function populateFormFields(settings) {
+            // Battery settings
+            document.getElementById('battery-type').value = settings.batteryType !== undefined ? settings.batteryType : 0;
+            document.getElementById('cell-count').value = settings.cellCount || 3;
+            document.getElementById('charge-voltage').value = (settings.chargeVoltage || 0).toFixed(1);
+            document.getElementById('charge-current').value = (settings.chargeCurrent || 0).toFixed(1);
+            document.getElementById('term-current').value = (settings.termCurrent || 0).toFixed(2);
+            document.getElementById('precharge-current').value = (settings.prechargeCurrent || 0).toFixed(2);
+            document.getElementById('recharge-threshold').value = (settings.rechargeThreshold || 0).toFixed(2);
+            
+            // Input settings
+            document.getElementById('input-voltage').value = (settings.inputVoltage || 0).toFixed(1);
+            document.getElementById('input-current').value = (settings.inputCurrent || 0).toFixed(1);
+            document.getElementById('vac-ovp').value = settings.vacOvp || 26;
+            
+            // MPPT settings
+            document.getElementById('mppt-enable').value = settings.mpptEnable ? 1 : 0;
+            document.getElementById('voc-percent').value = settings.vocPercent !== undefined ? settings.vocPercent : 5;
+            document.getElementById('voc-delay').value = settings.vocDelay !== undefined ? settings.vocDelay : 1;
+            document.getElementById('voc-rate').value = settings.vocRate !== undefined ? settings.vocRate : 1;
+            
+            // Timer settings
+            document.getElementById('charge-timer-enable').value = settings.chargeTimerEnable ? 1 : 0;
+            document.getElementById('charge-timer').value = settings.chargeTimer !== undefined ? settings.chargeTimer : 2;
+            document.getElementById('precharge-timer-enable').value = settings.prechargeTimerEnable ? 1 : 0;
+            document.getElementById('precharge-timer').value = settings.prechargeTimer !== undefined ? settings.prechargeTimer : 0;
+            document.getElementById('topoff-timer').value = settings.topoffTimer !== undefined ? settings.topoffTimer : 0;
+            
+            // System settings
+            document.getElementById('system-voltage').value = (settings.systemVoltage || 0).toFixed(1);
+            
+            // Power Management & Noise Control settings
+            document.getElementById('pfm-forward-enable').value = settings.pfmForwardEnable ? 1 : 0;
+            document.getElementById('ooa-forward-enable').value = settings.ooaForwardEnable ? 1 : 0;
+            
+            // System Intervals (convert from milliseconds to seconds)
+            document.getElementById('battery-check-interval').value = Math.round((settings.batteryCheckInterval || 30000) / 1000);
+            document.getElementById('soc-check-interval').value = Math.round((settings.socCheckInterval || 60000) / 1000);
+        }
+
+        function updateCurrentValues(settings) {
+            // Battery settings
+            document.getElementById('battery-type-current').textContent = 'Current: ' + getBatteryTypeName(settings.batteryType !== undefined ? settings.batteryType : 0);
+            document.getElementById('cell-count-current').textContent = 'Current: ' + (settings.cellCount || 3);
+            document.getElementById('charge-voltage-current').textContent = 'Current: ' + (settings.chargeVoltage || 0).toFixed(1) + 'V';
+            document.getElementById('charge-current-current').textContent = 'Current: ' + (settings.chargeCurrent || 0).toFixed(1) + 'A';
+            document.getElementById('term-current-current').textContent = 'Current: ' + (settings.termCurrent || 0).toFixed(2) + 'A';
+            document.getElementById('precharge-current-current').textContent = 'Current: ' + (settings.prechargeCurrent || 0).toFixed(1) + 'A';
+            document.getElementById('recharge-threshold-current').textContent = 'Current: ' + (settings.rechargeThreshold || 0).toFixed(1) + 'V';
+            
+            // Input settings
+            document.getElementById('input-voltage-current').textContent = 'Current: ' + (settings.inputVoltage || 0).toFixed(1) + 'V';
+            document.getElementById('input-current-current').textContent = 'Current: ' + (settings.inputCurrent || 0).toFixed(1) + 'A';
+            document.getElementById('vac-ovp-current').textContent = 'Current: ' + (settings.vacOvp || 0).toFixed(1) + 'V';
+            
+            // MPPT settings
+            document.getElementById('mppt-enable-current').textContent = 'Current: ' + (settings.mpptEnable ? 'Enabled' : 'Disabled');
+            document.getElementById('voc-percent-current').textContent = 'Current: ' + getVocPercentName(settings.vocPercent !== undefined ? settings.vocPercent : 5);
+            document.getElementById('voc-delay-current').textContent = 'Current: ' + getVocDelayName(settings.vocDelay !== undefined ? settings.vocDelay : 1);
+            document.getElementById('voc-rate-current').textContent = 'Current: ' + getVocRateName(settings.vocRate !== undefined ? settings.vocRate : 1);
+            
+            // Timer settings
+            document.getElementById('charge-timer-enable-current').textContent = 'Current: ' + (settings.chargeTimerEnable ? 'Enabled' : 'Disabled');
+            document.getElementById('charge-timer-current').textContent = 'Current: ' + getChargeTimerName(settings.chargeTimer !== undefined ? settings.chargeTimer : 2);
+            document.getElementById('precharge-timer-enable-current').textContent = 'Current: ' + (settings.prechargeTimerEnable ? 'Enabled' : 'Disabled');
+            document.getElementById('precharge-timer-current').textContent = 'Current: ' + getPrechargeTimerName(settings.prechargeTimer !== undefined ? settings.prechargeTimer : 0);
+            document.getElementById('topoff-timer-current').textContent = 'Current: ' + getTopoffTimerName(settings.topoffTimer !== undefined ? settings.topoffTimer : 0);
+            
+            // System settings
+            document.getElementById('system-voltage-current').textContent = 'Current: ' + (settings.systemVoltage || 0).toFixed(1) + 'V';
+            
+            // Power Management & Noise Control settings
+            document.getElementById('pfm-forward-enable-current').textContent = 'Current: ' + (settings.pfmForwardEnable ? 'Enabled' : 'Disabled');
+            document.getElementById('ooa-forward-enable-current').textContent = 'Current: ' + (settings.ooaForwardEnable ? 'Enabled' : 'Disabled');
+            
+            // System Intervals (convert from milliseconds to seconds)
+            document.getElementById('battery-check-interval-current').textContent = 'Current: ' + Math.round((settings.batteryCheckInterval || 30000) / 1000) + 's';
+            document.getElementById('soc-check-interval-current').textContent = 'Current: ' + Math.round((settings.socCheckInterval || 60000) / 1000) + 's';
+        }
+        
+        function getBatteryTypeName(type) {
+            const types = ['LiFePO4', 'Li-Po', 'Lead Acid', 'Custom'];
+            return types[type] || 'Unknown';
+        }
+        
+        function getVocPercentName(percent) {
+            const percentages = ['56.25%', '62.5%', '68.75%', '75%', '81.25%', '87.5%', '93.75%', '100%'];
+            return percentages[percent] || '87.5%';
+        }
+        
+        function getVocDelayName(delay) {
+            const delays = ['50ms', '300ms', '2s', '5s'];
+            return delays[delay] || '300ms';
+        }
+        
+        function getVocRateName(rate) {
+            const rates = ['30s', '2min', '10min', '30min'];
+            return rates[rate] || '2min';
+        }
+        
+        function getChargeTimerName(timer) {
+            const timers = ['5 hours', '8 hours', '12 hours', '24 hours'];
+            return timers[timer] || '12 hours';
+        }
+        
+        function getPrechargeTimerName(timer) {
+            const timers = ['2 hours', '30 minutes'];
+            return timers[timer] || '2 hours';
+        }
+        
+        function getTopoffTimerName(timer) {
+            const timers = ['Disabled', '15 minutes', '30 minutes', '45 minutes'];
+            return timers[timer] || 'Disabled';
+        }
+        
+        function saveSettings() {
+            const settings = {
+                batteryType: parseInt(document.getElementById('battery-type').value),
+                cellCount: parseInt(document.getElementById('cell-count').value),
+                chargeVoltage: parseFloat(document.getElementById('charge-voltage').value),
+                chargeCurrent: parseFloat(document.getElementById('charge-current').value),
+                termCurrent: parseFloat(document.getElementById('term-current').value),
+                prechargeCurrent: parseFloat(document.getElementById('precharge-current').value),
+                rechargeThreshold: parseFloat(document.getElementById('recharge-threshold').value),
+                inputVoltage: parseFloat(document.getElementById('input-voltage').value),
+                inputCurrent: parseFloat(document.getElementById('input-current').value),
+                vacOvp: parseFloat(document.getElementById('vac-ovp').value),
+                mpptEnable: parseInt(document.getElementById('mppt-enable').value) === 1,
+                vocPercent: parseInt(document.getElementById('voc-percent').value),
+                vocDelay: parseInt(document.getElementById('voc-delay').value),
+                vocRate: parseInt(document.getElementById('voc-rate').value),
+                chargeTimerEnable: parseInt(document.getElementById('charge-timer-enable').value) === 1,
+                chargeTimer: parseInt(document.getElementById('charge-timer').value),
+                prechargeTimerEnable: parseInt(document.getElementById('precharge-timer-enable').value) === 1,
+                prechargeTimer: parseInt(document.getElementById('precharge-timer').value),
+                topoffTimer: parseInt(document.getElementById('topoff-timer').value),
+                systemVoltage: parseFloat(document.getElementById('system-voltage').value),
+                pfmForwardEnable: parseInt(document.getElementById('pfm-forward-enable').value) === 1,
+                ooaForwardEnable: parseInt(document.getElementById('ooa-forward-enable').value) === 1,
+                batteryCheckInterval: parseInt(document.getElementById('battery-check-interval').value) * 1000, // Convert to milliseconds
+                socCheckInterval: parseInt(document.getElementById('soc-check-interval').value) * 1000 // Convert to milliseconds
+            };
+            
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({command: 'saveSettings', settings: settings}));
+                showStatus('Saving settings...', 'info');
+            } else {
+                showStatus('Connection lost. Cannot save settings.', 'error');
+            }
+        }
+        
+        function refreshSettings() {
+            loadSettings();
+            showStatus('Settings refreshed', 'success');
+        }
+        
+        function resetSettings() {
+            if (confirm('Are you sure you want to reset all settings to factory defaults? This cannot be undone.')) {
+                if (ws && ws.readyState === WebSocket.OPEN) {
+                    ws.send(JSON.stringify({command: 'resetSettings'}));
+                    showStatus('Resetting settings...', 'info');
+                } else {
+                    showStatus('Connection lost. Cannot reset settings.', 'error');
+                }
+            }
+        }
+        
+        function showStatus(message, type) {
+            const statusElement = document.getElementById('statusMessage');
+            statusElement.textContent = message;
+            statusElement.className = 'status-message status-' + type;
+            statusElement.style.display = 'block';
+            
+            setTimeout(() => {
+                statusElement.style.display = 'none';
+            }, 3000);
+        }
+        
+        // Connect when page loads
+        window.addEventListener('load', function() {
+            connectWebSocket();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modbee MPPT Controller</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: white;
+            color: #333;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .header {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #e0e0e0;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            color: #444;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-weight: bold;
+            margin: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        .status-charging { background: #e8f5e8; color: #2e7d32; border-color: #2e7d32; }
+        .status-not-charging { background: #fff3e0; color: #f57c00; border-color: #f57c00; }
+        .status-fault { background: #ffebee; color: #d32f2f; border-color: #d32f2f; }
+        
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e0e0e0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .power-flow {
+            text-align: center;
+        }
+        
+        .power-flow h2 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .svg-container {
+            width: 100%;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #fafafa;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        
+        .power-box {
+            fill: #f5f5f5;
+            stroke: #666;
+            stroke-width: 2;
+            rx: 8;
+            ry: 8;
+        }
+        
+        .power-line {
+            stroke: #ccc;
+            stroke-width: 3;
+            fill: none;
+            transition: stroke 0.3s ease, stroke-width 0.3s ease;
+        }
+        
+        .power-line.active {
+            stroke: #4caf50;
+            stroke-width: 4;
+        }
+        
+        .power-line.discharge {
+            stroke: #4caf50;
+            stroke-width: 4;
+        }
+        
+        .power-arrow {
+            fill: #ccc;
+            stroke: none;
+            transition: all 0.3s ease;
+        }
+        
+        .power-arrow.active {
+            fill: #4caf50 !important;
+        }
+        
+        .power-arrow.discharge {
+            fill: #4caf50 !important;
+            transform-origin: 530px 240px; /* Center of arrow4 */
+            transform: rotate(180deg);
+        }
+        
+        #arrow1.active, #arrow2.active, #arrow3.active, #arrow4.active {
+            fill: #4caf50;
+        }
+        
+        #arrow4.discharge {
+            fill: #4caf50;
+            transform-origin: 530px 240px;
+            transform: rotate(180deg);
+        }
+        
+        .power-text {
+            font-family: 'Segoe UI', sans-serif;
+            font-size: 12px;
+            fill: #333;
+            text-anchor: middle;
+        }
+        
+        .power-label {
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        .measurements {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+        }
+        
+        .measurement {
+            text-align: center;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+        
+        .measurement-value {
+            font-size: 1.8em;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+        
+        .measurement-label {
+            font-size: 0.9em;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .navigation {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+        }
+        
+        .nav-btn {
+            padding: 12px 20px;
+            background: #666;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: bold;
+            transition: background 0.3s;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .nav-btn:hover {
+            background: #555;
+        }
+        
+        .connection-status {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+        
+        .connected {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #2e7d32;
+        }
+        
+        .disconnected {
+            background: #ffebee;
+            color: #d32f2f;
+            border: 1px solid #d32f2f;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .measurements {
+                grid-template-columns: 1fr 1fr;
+            }
+            
+            .measurement-value {
+                font-size: 1.5em;
+            }
+            
+            .navigation {
+                position: relative;
+                bottom: auto;
+                right: auto;
+                justify-content: center;
+                margin-top: 20px;
+            }
+            
+            .svg-container {
+                padding: 10px;
+            }
+            
+            .power-text {
+                font-size: 11px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="connection-status" id="connectionStatus">Connecting...</div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>Modbee MPPT Controller</h1>
+            <div id="statusBadges">
+                <span class="status-badge status-not-charging">Initializing...</span>
+            </div>
+        </div>
+        
+        <div class="dashboard">
+            <div class="card power-flow">
+                <h2>Power Flow Diagram</h2>
+                <div class="svg-container">
+                    <svg width="100%" height="400" viewBox="0 0 800 400" xmlns="http://www.w3.org/2000/svg">
+                        <!-- VIN1/VAC1 Box -->
+                        <rect class="power-box" x="50" y="50" width="120" height="80"/>
+                        <text class="power-text power-label" x="110" y="75" text-anchor="middle">VIN1</text>
+                        <text class="power-text" x="110" y="95" text-anchor="middle" id="vac1Voltage">0.0V</text>
+                        <text class="power-text" x="110" y="110" text-anchor="middle" id="vac1Current">0.0A</text>
+                        <text class="power-text" x="110" y="125" text-anchor="middle" id="vac1Power">0.0W</text>
+                        
+                        <!-- VIN2/VAC2 Box -->
+                        <rect class="power-box" x="50" y="200" width="120" height="80"/>
+                        <text class="power-text power-label" x="110" y="225" text-anchor="middle">VIN2</text>
+                        <text class="power-text" x="110" y="245" text-anchor="middle" id="vac2Voltage">0.0V</text>
+                        <text class="power-text" x="110" y="260" text-anchor="middle" id="vac2Current">0.0A</text>
+                        <text class="power-text" x="110" y="275" text-anchor="middle" id="vac2Power">0.0W</text>
+                        
+                        <!-- VBUS Box -->
+                        <rect class="power-box" x="300" y="125" width="120" height="80"/>
+                        <text class="power-text power-label" x="360" y="150" text-anchor="middle">VBUS</text>
+                        <text class="power-text" x="360" y="170" text-anchor="middle" id="vbusVoltage">0.0V</text>
+                        <text class="power-text" x="360" y="185" text-anchor="middle" id="vbusCurrent">0.0A</text>
+                        <text class="power-text" x="360" y="200" text-anchor="middle" id="vbusPower">0.0W</text>
+                        
+                        <!-- VSYS Box -->
+                        <rect class="power-box" x="550" y="50" width="120" height="80"/>
+                        <text class="power-text power-label" x="610" y="75" text-anchor="middle">VSYS</text>
+                        <text class="power-text" x="610" y="95" text-anchor="middle" id="vsysVoltage">0.0V</text>
+                        <text class="power-text" x="610" y="110" text-anchor="middle" id="vsysCurrent">0.0A</text>
+                        <text class="power-text" x="610" y="125" text-anchor="middle" id="vsysPower">0.0W</text>
+                        
+                        <!-- VBAT Box -->
+                        <rect class="power-box" x="550" y="200" width="120" height="80"/>
+                        <text class="power-text power-label" x="610" y="225" text-anchor="middle">VBAT</text>
+                        <text class="power-text" x="610" y="245" text-anchor="middle" id="vbatVoltage">0.0V</text>
+                        <text class="power-text" x="610" y="260" text-anchor="middle" id="vbatCurrent">0.0A</text>
+                        <text class="power-text" x="610" y="275" text-anchor="middle" id="vbatPower">0.0W</text>
+                        
+                        <!-- Power Lines - Properly aligned and connected -->
+                        <!-- VIN1 to VBUS (3-segment path) -->
+                        <line class="power-line" x1="170" y1="90" x2="240" y2="90" id="line1a"/>
+                        <line class="power-line" x1="240" y1="90" x2="240" y2="155" id="line1b"/>
+                        <line class="power-line" x1="240" y1="155" x2="300" y2="155" id="line1c"/>
+                        <polygon class="power-arrow" points="270,148 290,155 270,162" id="arrow1"/>
+                        
+                        <!-- VIN2 to VBUS (3-segment path) -->
+                        <line class="power-line" x1="170" y1="240" x2="240" y2="240" id="line2a"/>
+                        <line class="power-line" x1="240" y1="240" x2="240" y2="175" id="line2b"/>
+                        <line class="power-line" x1="240" y1="175" x2="300" y2="175" id="line2c"/>
+                        <polygon class="power-arrow" points="270,168 290,175 270,182" id="arrow2"/>
+                        
+                        <!-- VBUS to VSYS (3-segment path) -->
+                        <line class="power-line" x1="420" y1="155" x2="480" y2="155" id="line3a"/>
+                        <line class="power-line" x1="480" y1="155" x2="480" y2="90" id="line3b"/>
+                        <line class="power-line" x1="480" y1="90" x2="550" y2="90" id="line3c"/>
+                        <polygon class="power-arrow" points="520,83 540,90 520,97" id="arrow3"/>
+                        
+                        <!-- VBUS to VBAT (charging - 3-segment path) -->
+                        <line class="power-line" x1="420" y1="175" x2="480" y2="175" id="line4a"/>
+                        <line class="power-line" x1="480" y1="175" x2="480" y2="240" id="line4b"/>
+                        <line class="power-line" x1="480" y1="240" x2="550" y2="240" id="line4c"/>
+                        <polygon class="power-arrow" points="520,233 540,240 520,247" id="arrow4"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>Battery Status</h2>
+            <div class="measurements">
+                <div class="measurement">
+                    <div class="measurement-value" id="batteryVoltage">--V</div>
+                    <div class="measurement-label">Battery Voltage</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="batteryCurrent">--A</div>
+                    <div class="measurement-label">Battery Current</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="batteryPower">--W</div>
+                    <div class="measurement-label">Battery Power</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="actualSOC">--%</div>
+                    <div class="measurement-label">Actual SOC</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="usableSOC">--%</div>
+                    <div class="measurement-label">Usable SOC</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="batteryTemperature">--°C</div>
+                    <div class="measurement-label">Battery Temperature</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="chargeState">Unknown</div>
+                    <div class="measurement-label">Charge State</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="batteryStatus">--</div>
+                    <div class="measurement-label">Battery Connected</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>VIN1 / VAC1</h2>
+            <div class="measurements">
+                <div class="measurement">
+                    <div class="measurement-value" id="vin1Voltage">--V</div>
+                    <div class="measurement-label">Voltage</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vin1Current">--A</div>
+                    <div class="measurement-label">Current</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vin1Power">--W</div>
+                    <div class="measurement-label">Power</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vin1PeakPower">--W</div>
+                    <div class="measurement-label">Peak Power</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vin1TotalEnergy">--Wh</div>
+                    <div class="measurement-label">Total Energy</div>
+                </div>
+                <div class="measurement">
+                    <button class="nav-btn" onclick="resetStat('vin1')">Reset VIN1 Stats</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>VIN2 / VAC2</h2>
+            <div class="measurements">
+                <div class="measurement">
+                    <div class="measurement-value" id="vin2Voltage">--V</div>
+                    <div class="measurement-label">Voltage</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vin2Current">--A</div>
+                    <div class="measurement-label">Current</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vin2Power">--W</div>
+                    <div class="measurement-label">Power</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vin2PeakPower">--W</div>
+                    <div class="measurement-label">Peak Power</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vin2TotalEnergy">--Wh</div>
+                    <div class="measurement-label">Total Energy</div>
+                </div>
+                <div class="measurement">
+                    <button class="nav-btn" onclick="resetStat('vin2')">Reset VIN2 Stats</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>VBUS (Combined Input)</h2>
+            <div class="measurements">
+                <div class="measurement">
+                    <div class="measurement-value" id="vbusVoltageDetail">--V</div>
+                    <div class="measurement-label">Voltage</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vbusCurrentDetail">--A</div>
+                    <div class="measurement-label">Current</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vbusPowerDetail">--W</div>
+                    <div class="measurement-label">Power</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vbusPeakPower">--W</div>
+                    <div class="measurement-label">Peak Power</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vbusTotalEnergy">--Wh</div>
+                    <div class="measurement-label">Total Energy</div>
+                </div>
+                <div class="measurement">
+                    <button class="nav-btn" onclick="resetStat('vbus')">Reset VBUS Stats</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>VSYS (System Output)</h2>
+            <div class="measurements">
+                <div class="measurement">
+                    <div class="measurement-value" id="vsysVoltageDetail">--V</div>
+                    <div class="measurement-label">Voltage</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vsysCurrentDetail">--A</div>
+                    <div class="measurement-label">Current</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vsysPowerDetail">--W</div>
+                    <div class="measurement-label">Power</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vsysPeakPower">--W</div>
+                    <div class="measurement-label">Peak Power</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vsysTotalEnergy">--Wh</div>
+                    <div class="measurement-label">Total Energy</div>
+                </div>
+                <div class="measurement">
+                    <button class="nav-btn" onclick="resetStat('vsys')">Reset VSYS Stats</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>VBAT (Battery)</h2>
+            <div class="measurements">
+                <div class="measurement">
+                    <div class="measurement-value" id="vbatVoltageDetail">--V</div>
+                    <div class="measurement-label">Voltage</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vbatCurrentDetail">--A</div>
+                    <div class="measurement-label">Current</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vbatPowerDetail">--W</div>
+                    <div class="measurement-label">Power</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vbatPeakPower">--W</div>
+                    <div class="measurement-label">Peak Power (Charge)</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="batteryPeakDischargePower">--W</div>
+                    <div class="measurement-label">Peak Power (Discharge)</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="vbatTotalEnergy">--Wh</div>
+                    <div class="measurement-label">Total Energy (Charge)</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="batteryWattHoursDischarge">--Wh</div>
+                    <div class="measurement-label">Total Energy (Discharge)</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="batteryPeakChargeAmps">--A</div>
+                    <div class="measurement-label">Peak Charge Amps</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="batteryPeakDischargeAmps">--A</div>
+                    <div class="measurement-label">Peak Discharge Amps</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="batteryAmpHoursCharge">--Ah</div>
+                    <div class="measurement-label">Amp Hours (Charge)</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="batteryAmpHoursDischarge">--Ah</div>
+                    <div class="measurement-label">Amp Hours (Discharge)</div>
+                </div>
+                <div class="measurement">
+                    <button class="nav-btn" onclick="resetBatteryAmpStats()">Reset Amp Stats</button>
+                    <button class="nav-btn" onclick="resetBatteryDischargePowerStats()">Reset Discharge Power Stats</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <h2>System Status</h2>
+            <div class="measurements">
+                <div class="measurement">
+                    <div class="measurement-value" id="mpptStatus">--</div>
+                    <div class="measurement-label">MPPT Enabled</div>
+                </div>
+                <div class="measurement">
+                    <div class="measurement-value" id="dieTemperature">--°C</div>
+                    <div class="measurement-label">Die Temperature</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="navigation">
+        <a href="/settings" class="nav-btn">Settings</a>
+        <a href="/debug" class="nav-btn">Debug</a>
+    </div>
+    
+    <script>
+        let ws;
+        let reconnectInterval;
+        let connectionAttempts = 0;
+        const maxReconnectAttempts = 5;
+        
+        function connectWebSocket() {
+            // Close existing connection if any
+            if (ws) {
+                ws.close();
+                ws = null;
+            }
+            
+            // Clear any existing reconnect interval
+            if (reconnectInterval) {
+                clearInterval(reconnectInterval);
+                reconnectInterval = null;
+            }
+            
+            try {
+                ws = new WebSocket('ws://' + window.location.host + '/ws');
+                
+                ws.onopen = function() {
+                    console.log('WebSocket connected');
+                    document.getElementById('connectionStatus').textContent = 'Connected';
+                    document.getElementById('connectionStatus').className = 'connection-status connected';
+                    connectionAttempts = 0; // Reset attempts on successful connection
+                };
+                
+                ws.onmessage = function(event) {
+                    const data = JSON.parse(event.data);
+                    updateData(data);
+                };
+                
+                ws.onclose = function(event) {
+                    console.log('WebSocket disconnected. Code:', event.code, 'Reason:', event.reason);
+                    document.getElementById('connectionStatus').textContent = 'Disconnected';
+                    document.getElementById('connectionStatus').className = 'connection-status disconnected';
+                    
+                    // Only attempt to reconnect if we haven't exceeded max attempts
+                    if (connectionAttempts < maxReconnectAttempts) {
+                        connectionAttempts++;
+                        setTimeout(connectWebSocket, 3000);
+                    } else {
+                        console.log('Max reconnection attempts reached');
+                        document.getElementById('connectionStatus').textContent = 'Connection Failed';
+                    }
+                };
+                
+                ws.onerror = function(error) {
+                    console.error('WebSocket error:', error);
+                };
+                
+            } catch (error) {
+                console.error('Failed to create WebSocket:', error);
+                if (connectionAttempts < maxReconnectAttempts) {
+                    connectionAttempts++;
+                    setTimeout(connectWebSocket, 3000);
+                }
+            }
+        }
+        
+        function updateData(data) {
+            // Peak power and total energy fields
+            updateElement('vin1PeakPower', data.vin1PeakPower, 'W', 1);
+            updateElement('vin1TotalEnergy', data.vin1TotalEnergyWh, 'Wh', 2);
+            updateElement('vin2PeakPower', data.vin2PeakPower, 'W', 1);
+            updateElement('vin2TotalEnergy', data.vin2TotalEnergyWh, 'Wh', 2);
+            updateElement('vbusPeakPower', data.vbusPeakPower, 'W', 1);
+            updateElement('vbusTotalEnergy', data.vbusTotalEnergyWh, 'Wh', 2);
+            updateElement('vbatPeakPower', data.batteryPeakPower, 'W', 1);
+            updateElement('batteryPeakDischargePower', data.batteryPeakDischargePower, 'W', 1);
+            updateElement('vbatTotalEnergy', data.batteryTotalEnergyWh, 'Wh', 2);
+            updateElement('batteryWattHoursDischarge', data.batteryWattHoursDischarge, 'Wh', 2);
+            updateElement('batteryPeakChargeAmps', data.batteryPeakChargeAmps, 'A', 2);
+            updateElement('batteryPeakDischargeAmps', data.batteryPeakDischargeAmps, 'A', 2);
+            updateElement('batteryAmpHoursCharge', data.batteryAmpHoursCharge, 'Ah', 2);
+            updateElement('batteryAmpHoursDischarge', data.batteryAmpHoursDischarge, 'Ah', 2);
+            updateElement('vsysPeakPower', data.systemPeakPower, 'W', 1);
+            updateElement('vsysTotalEnergy', data.systemTotalEnergyWh, 'Wh', 2);
+            if (data.type === 'data' || !data.type) {
+                // Update power flow diagram
+                updateElement('vac1Voltage', data.vac1Voltage, 'V', 1);
+                updateElement('vac1Current', data.vac1Current, 'A', 2);
+                updateElement('vac1Power', data.vac1Power, 'W', 1);
+                
+                updateElement('vac2Voltage', data.vac2Voltage, 'V', 1);
+                updateElement('vac2Current', data.vac2Current, 'A', 2);
+                updateElement('vac2Power', data.vac2Power, 'W', 1);
+                
+                updateElement('vbusVoltage', data.vbusVoltage, 'V', 1);
+                updateElement('vbusCurrent', data.vbusCurrent, 'A', 2);
+                updateElement('vbusPower', data.vbusPower, 'W', 1);
+                
+                updateElement('vsysVoltage', data.vsysVoltage, 'V', 1);
+                updateElement('vsysCurrent', data.vsysCurrent, 'A', 2);
+                updateElement('vsysPower', data.vsysPower, 'W', 1);
+                
+                updateElement('vbatVoltage', data.vbatTrueVoltage, 'V', 1);
+                updateElement('vbatCurrent', data.vbatCurrent, 'A', 2);
+                updateElement('vbatPower', data.vbatPower, 'W', 1);
+                
+                // Update battery status section - use true battery voltage
+                updateElement('batteryVoltage', data.vbatTrueVoltage, 'V', 2);
+                updateElement('batteryCurrent', data.vbatCurrent, 'A', 2);
+                updateElement('batteryPower', data.vbatPower, 'W', 1);
+                updateElement('actualSOC', data.actualSOC, '%', 1);
+                updateElement('usableSOC', data.usableSOC, '%', 1);
+                updateElement('batteryTemperature', data.batteryTemperature, '°C', 1);
+                document.getElementById('chargeState').textContent = data.chargeState || 'Unknown';
+                document.getElementById('batteryStatus').textContent = data.batteryConnected ? 'Yes' : 'No';
+                
+                // Update detailed sections
+                updateElement('vin1Voltage', data.vac1Voltage, 'V', 2);
+                updateElement('vin1Current', data.vac1Current, 'A', 3);
+                updateElement('vin1Power', data.vac1Power, 'W', 1);
+                
+                updateElement('vin2Voltage', data.vac2Voltage, 'V', 2);
+                updateElement('vin2Current', data.vac2Current, 'A', 3);
+                updateElement('vin2Power', data.vac2Power, 'W', 1);
+                
+                updateElement('vbusVoltageDetail', data.vbusVoltage, 'V', 2);
+                updateElement('vbusCurrentDetail', data.vbusCurrent, 'A', 3);
+                updateElement('vbusPowerDetail', data.vbusPower, 'W', 1);
+                
+                updateElement('vsysVoltageDetail', data.vsysVoltage, 'V', 2);
+                updateElement('vsysCurrentDetail', data.vsysCurrent, 'A', 3);
+                updateElement('vsysPowerDetail', data.vsysPower, 'W', 1);
+                
+                updateElement('vbatVoltageDetail', data.vbatTrueVoltage, 'V', 2);
+                updateElement('vbatCurrentDetail', data.vbatCurrent, 'A', 3);
+                updateElement('vbatPowerDetail', data.vbatPower, 'W', 1);
+                
+                // Update system status
+                document.getElementById('mpptStatus').textContent = data.mpptEnabled ? 'Yes' : 'No';
+                updateElement('dieTemperature', data.dieTemperature, '°C', 1);
+                
+                // Update status badges
+                updateStatusBadges(data);
+                
+                // Update power flow lines
+                updatePowerFlow(data);
+            }
+        }
+        
+        function updateElement(id, value, unit, decimals) {
+            const element = document.getElementById(id);
+            if (element && value !== undefined && value !== null) {
+                element.textContent = parseFloat(value).toFixed(decimals) + unit;
+            }
+        }
+        
+        function updateStatusBadges(data) {
+            const container = document.getElementById('statusBadges');
+            let badgeClass = 'status-not-charging';
+            let badgeText = 'Not Charging';
+            
+            if (data.hasFaults) {
+                badgeClass = 'status-fault';
+                badgeText = 'Fault Detected';
+            } else if (data.isCharging) {
+                badgeClass = 'status-charging';
+                badgeText = 'Charging';
+            }
+            
+            container.innerHTML = `<span class="status-badge ${badgeClass}">${badgeText}</span>`;
+        }
+        
+        function updatePowerFlow(data) {
+            // Define thresholds per your specifications
+            const vinVoltageThreshold = 2.5; // 2.5V minimum for VIN paths
+            const vinCurrentThreshold = 0.01; // 10mA for VIN paths
+            const sysVoltageThreshold = 2.5; // 2.5V for VSYS path
+            const sysCurrentThreshold = 0.01; // 10mA for VSYS path  
+            const batVoltageThreshold = 2.5; // 2.5V for VBAT path
+            const batCurrentThreshold = 0.01; // 10mA for VBAT path
+            
+            // Get all the measurement data
+            const vin1Voltage = data.vac1Voltage || 0;
+            const vin2Voltage = data.vac2Voltage || 0;
+            const vin1Current = data.vac1Current || 0;
+            const vin2Current = data.vac2Current || 0;
+            const vsysVoltage = data.vsysVoltage || 0;
+            const vsysCurrent = data.vsysCurrent || 0;
+            const vbatVoltage = data.vbatTrueVoltage || 0; // Use true battery voltage
+            const vbatCurrent = data.vbatCurrent || 0;
+            
+            // === VIN PATH LOGIC ===
+            // Each VIN must meet voltage and current thresholds, highest voltage wins
+            let vin1Active = false;
+            let vin2Active = false;
+            
+            const vin1Qualified = (vin1Voltage > vinVoltageThreshold) && (vin1Current > vinCurrentThreshold);
+            const vin2Qualified = (vin2Voltage > vinVoltageThreshold) && (vin2Current > vinCurrentThreshold);
+            
+            if (vin1Qualified && vin2Qualified) {
+                // Both qualified, highest voltage wins
+                if (vin1Voltage >= vin2Voltage) {
+                    vin1Active = true;
+                } else {
+                    vin2Active = true;
+                }
+            } else if (vin1Qualified) {
+                // Only VIN1 qualified
+                vin1Active = true;
+            } else if (vin2Qualified) {
+                // Only VIN2 qualified
+                vin2Active = true;
+            }
+            
+            // Apply VIN1 path styling
+            ['line1a', 'line1b', 'line1c'].forEach(id => {
+                const line = document.getElementById(id);
+                line.classList.toggle('active', vin1Active);
+            });
+            document.getElementById('arrow1').classList.toggle('active', vin1Active);
+            
+            // Apply VIN2 path styling
+            ['line2a', 'line2b', 'line2c'].forEach(id => {
+                const line = document.getElementById(id);
+                line.classList.toggle('active', vin2Active);
+            });
+            document.getElementById('arrow2').classList.toggle('active', vin2Active);
+            
+            // === VSYS PATH LOGIC ===
+            // VSYS path active when voltage > 2.5V AND current > 0.01A
+            const vsysActive = (vsysVoltage > sysVoltageThreshold) && (vsysCurrent > sysCurrentThreshold);
+            
+            ['line3a', 'line3b', 'line3c'].forEach(id => {
+                const line = document.getElementById(id);
+                line.classList.toggle('active', vsysActive);
+            });
+            document.getElementById('arrow3').classList.toggle('active', vsysActive);
+            
+            // === VBAT PATH LOGIC ===
+            // VBAT path active when voltage > 2.5V AND current > 0.01A (absolute value)
+            // Arrow direction based on current sign: positive=charging, negative=discharging
+            const vbatActive = (vbatVoltage > batVoltageThreshold) && (Math.abs(vbatCurrent) > batCurrentThreshold);
+            const isCharging = vbatCurrent > batCurrentThreshold; // Positive current = charging
+            const isDischarging = vbatCurrent < -batCurrentThreshold; // Negative current = discharging
+            
+            // Reset battery path classes
+            ['line4a', 'line4b', 'line4c'].forEach(id => {
+                const line = document.getElementById(id);
+                line.classList.remove('active', 'discharge');
+            });
+            const arrow4 = document.getElementById('arrow4');
+            arrow4.classList.remove('active', 'discharge');
+            
+            // Apply battery path styling based on current direction
+            if (vbatActive) {
+                if (isCharging) {
+                    // Charging: green lines + normal arrow direction
+                    ['line4a', 'line4b', 'line4c'].forEach(id => {
+                        document.getElementById(id).classList.add('active');
+                    });
+                    arrow4.classList.add('active');
+                } else if (isDischarging) {
+                    // Discharging: green lines + rotated arrow direction
+                    ['line4a', 'line4b', 'line4c'].forEach(id => {
+                        document.getElementById(id).classList.add('discharge');
+                    });
+                    arrow4.classList.add('discharge');
+                }
+            }
+            
+            // Debug logging
+            console.log(`Power Flow Update:
+                VIN1: ${vin1Voltage.toFixed(2)}V, ${vin1Current.toFixed(3)}A → Active: ${vin1Active}
+                VIN2: ${vin2Voltage.toFixed(2)}V, ${vin2Current.toFixed(3)}A → Active: ${vin2Active}
+                VSYS: ${vsysVoltage.toFixed(2)}V, ${vsysCurrent.toFixed(3)}A → Active: ${vsysActive}
+                VBAT: ${vbatVoltage.toFixed(2)}V, ${vbatCurrent.toFixed(3)}A → Active: ${vbatActive}, Charging: ${isCharging}, Discharging: ${isDischarging}`);
+        }
+        
+        // Start WebSocket connection
+        connectWebSocket();
+        
+        // Request initial data every 2 seconds
+        setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({command: 'getSystemData'}));
+            }
+        }, 2000);
+        
+        // Reset stat via WebSocket
+        function resetStat(domain) {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({command: 'resetStat', domain: domain}));
+            }
+        }
+        function resetBatteryAmpStats() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({command: 'resetBatteryAmpStats'}));
+            }
+        }
+        function resetBatteryDischargePowerStats() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({command: 'resetBatteryDischargePowerStats'}));
+            }
+        }
+    </script>
+</body>
+</html>
