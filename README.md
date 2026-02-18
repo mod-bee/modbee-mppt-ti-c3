@@ -73,6 +73,8 @@ ModBee MPPT Charger brings together:
 | **Communication** | I2C (BQ25798), RS485, WiFi/BLE, USB-C |
 | **Temperature Sensor** | NTC thermistor (10K) for battery monitoring |
 | **Status Indicators** | Dual-color LED (Green: MCU status, Blue: charging) |
+| **Dimensions (L × W × H)** | 118 × 42 × 45 mm | Compact form factor |
+| **Mounting** | DIN Rail Mount | Compatible with standard 35 mm DIN rail systems |
 
 
 **⚠️ Safety**: Verify correct polarity before connecting PV, BAT, and LOAD connectors. Reversed polarity can damage components.
